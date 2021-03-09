@@ -2,6 +2,7 @@ import axios from 'axios';
 import React, { useState } from 'react';
 import Modal from 'react-modal';
 import Filters from '../filters/Filters';
+import { isVaidDuration } from '../utils/TImeManager';
 
 Modal.setAppElement(document.body);
 
@@ -38,6 +39,10 @@ export default function AddFilterDialog(props) {
     let filterValue = getFilter(filter);
     // to do check duration with backend
     // if(filterValue.in[0].id ==='duration' &&)
+    if (filterValue.in[0].id === 'duration' && isVaidDuration(level)) {
+      alert('Duration must be nonzero, in 00: 00: 00,000 format');
+      return;
+    }
 
     let newFilter = {
       filterValue: filter,
