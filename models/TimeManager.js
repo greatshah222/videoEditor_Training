@@ -105,7 +105,8 @@ exports.isVaidDuration = (text) => {
   return regexpFormat.test(text) && !regexpZero.test(text);
 };
 
-console.log(this.isVaidDuration('12:12:12,334'));
+// console.log(this.addDuration('12:12:12,334', '12:12:12,334'));
+
 exports.middleOfDuration = (start, end) => {
   const duration = this.subDuration(end, start);
   let parsedDuration = duration.match(/^(\d{2,}):(\d{2}):(\d{2}),(\d{3})$/);
@@ -156,4 +157,4 @@ exports.middleOfDuration = (start, end) => {
   return this.addDuration(start, midDuration);
 };
 
-console.log(this.middleOfDuration('12:12:12,123', '13:13:13,487'));
+// console.log(this.middleOfDuration('12:12:12,123', '13:13:13,487'));

@@ -1,14 +1,15 @@
-import { JSDOM } from 'jsdom';
+const { JSDOM } = require('jsdom');
 
 const fs = require('fs');
+const fsPromises = require('fs').promises;
+
 const path = require('path');
 
-const RWlock = require('rwlock');
-const {JSDOM}= require('jsdom')
+// const RWlock = require('rwlock');
+const RWlock = require('async-rwlock').RWLock;
 
-export default {
+module.exports = {
   init() {
-
     return (
       '<mlt><playlist id="videotrack0"/><playlist id="audiotrack0"/>' +
       '<tractor id="main"><multitrack><track producer="videotrack0" /><track producer="audiotrack0" />' +
@@ -19,15 +20,21 @@ export default {
   //   Saving the project into local system
 
   async save(project, data, release = undefined) {
-    const filepath = path.join(process.env.PROJECTPATH, project, 'project.mlt');
+    console.log(process.env.PROJECT_PATH, 'ProjectManager');
+    console.log(project);
+    const filepath = path.join(
+      process.env.PROJECT_PATH,
+      project,
+      'project.mlt'
+    );
     const saveProject = async () => {
-
       try {
-        await fs.writeFile(filepath, process.env.DECLAREXML + data);
+        await fsPromises.writeFile(filepath, process.env.DECLAREXML + data);
         if (typeof release !== 'undefined') release();
         await console.log(`File ${filepath} updated`);
       } catch (error) {
         console.log(`unable to update file ${filepath}`);
+        console.log(error);
       }
     };
     await saveProject();
@@ -35,48 +42,42 @@ export default {
   // loading the project for writing or reading from the system
 
   async load(project, mode) {
-    const lock = new RWlock();
-    const filepath = path.join(process.env.PROJECTPATH, project, 'project.mlt');
+    try {
+      const lock = new RWlock();
+      const filepath = path.join(
+        process.env.PROJECT_PATH,
+        project,
+        'project.mlt'
+      );
 
-    let lockFile = mode === 'r' ? lock.async.readLock : lock.async.writeLock;
+      let lockFile = mode === 'r' ? lock.readLock : lock.writeLock;
 
-    // file will be locked till we release the lock which is done by calling the release function
+      // file will be locked till we release the lock which is done by calling the release function
 
-    return lockFile(filepath, (release) => {
+      await lockFile();
       /* 
         r+ flag means to open it in read +write mode
         fd also called file Descriptor  is number given by the computer/app to locate ot easily later
         
         */
-     await fs.open(filepath, 'r+', (err, fd) => {
-          // we are opening the file than reading it or writing it 
-        if (err) {
-          release();
-          return console.log(err);
-        }
+      const toReadFIle = await fsPromises.open(filepath, 'r+');
 
-        // the file gets stored in the data variable
+      // the file gets stored in the data variable
 
-        await fs.readFile(fd,(err,data)=>{
-            if(err){
-                release();
-                return console.log(err);
+      const data = await fsPromises.readFile(toReadFIle);
+      console.log(data.toString(), 'data');
 
-            }
-            const dom = new JSDOM(data, { contentType: 'application/xml' });        
-            const document = dom.window.document;
+      const dom = new JSDOM(data, { contentType: 'application/xml' });
+      const document = dom.window.document;
 
-
-            if(mode ==='r') release()
-            return [document,fd,release]
-
-        })
-      });
-    });
+      // console.log(document, 'ProjectManager');
+      return [document];
+    } catch (error) {
+      console.log(error);
+    }
   },
 
-
-  getDirectory(projectID){
-    return path.join(process.env.PROJECTPATH,projectID)
-  }
+  getDirectory(projectID) {
+    return path.join(process.env.PROJECT_PATH, projectID);
+  },
 };

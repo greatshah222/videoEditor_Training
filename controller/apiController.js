@@ -3,15 +3,14 @@ const { constants } = require('fs');
 const fs = require('fs');
 const { exec } = require('child_process');
 const fsPromises = require('fs').promises;
-console.log(fsPromises);
+const path = require('path');
+// console.log(fsPromises);
+// console.log(process.env.PROJECT_PATH);
 
 const { v4: uuidv4 } = require('uuid');
 const Busboy = require('busboy');
 
-const {
-  default: Mltxml,
-  default: MltxmlManager,
-} = require('../models/MltxmlManager');
+const { default: MltxmlManager } = require('../models/MltxmlManager');
 const {
   addDuration,
   isVaidDuration,
@@ -25,12 +24,13 @@ exports.projectPOST = async (req, res, next) => {
   const projectINIT = async () => {
     try {
       let projectID = uuidv4();
-      fs.mkdir(path.join(process.env.PROJECT_PATH, projectID), {
-        recursive: true,
-      });
-      await project.save(projectID, ProjectManager.init());
+      console.log(process.env.PROJECT_PATH);
+      console.log(projectID);
+      fsPromises.mkdir(path.join(process.env.PROJECT_PATH, projectID));
+      await ProjectManager.save(projectID, ProjectManager.init());
       return res.json({ project: projectID });
     } catch (error) {
+      console.log(error.response);
       return next(error);
     }
   };
@@ -42,6 +42,7 @@ exports.projectGET = async (req, res) => {
   const executeProjectGet = async () => {
     try {
       const projectID = req.params.projectID;
+      console.log(projectID);
 
       // the below function returns [document,fd,release] so we need document from here
       const [document] = await ProjectManager.load(projectID, 'r');
@@ -97,7 +98,7 @@ exports.projectGET = async (req, res) => {
           else if (
             new RegExp(/^producer/).test(entry.getAttribute('producer'))
           ) {
-            const duration = await Mltxml.getDuration(entry, document);
+            const duration = await MltxmlManager.getDuration(entry, document);
             const startTime = time;
             time = await addDuration(duration.time, time);
             trackEntry.items.push({
@@ -177,13 +178,18 @@ exports.projectGET = async (req, res) => {
           timeline.audio.push(trackEntry);
         }
       }
+      let processingValue;
       let processing = async () => {
         try {
           // we have directly taken acess from fs
           // refrence code link  https://nodejs.org/api/fs.html#fs_fspromises_access_path_mode
 
-          const projectPath = project.getDirectory(req.params.projectID);
-          await access(path.join(projectPath, 'processing'), constants.F_OK);
+          const projectPath = ProjectManager.getDirectory(req.params.projectID);
+          console.log(projectPath, 'processing');
+          const t = await access(
+            path.join(projectPath, 'processing'),
+            constants.F_OK
+          );
 
           const { stdout, stderr } = await exec(
             `cat ${path.join(
@@ -194,9 +200,11 @@ exports.projectGET = async (req, res) => {
           );
 
           const parsed = Number.parseInt(stdout.trim());
+          processingValue = !Number.isNaN(parsed) ? parsed : null;
+          console.log(processingValue, 'processingValue');
           return !Number.isNaN(parsed) ? parsed : null;
         } catch (error) {
-          console.log(error);
+          console.log(error, 'error');
           return null;
         }
       };
@@ -206,7 +214,7 @@ exports.projectGET = async (req, res) => {
         project: req.params.projectID,
         resource: resources,
         timeline,
-        processing: processing,
+        processing: processingValue,
       });
     } catch (error) {
       console.log(error);

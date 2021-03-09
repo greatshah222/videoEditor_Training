@@ -1,6 +1,6 @@
 const { addDuration, subDuration } = require('./TimeManager');
 
-export default {
+module.exports = {
   /**
    * Check if entry is without any filter or transition
    *

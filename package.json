@@ -4,12 +4,14 @@
   "description": "",
   "main": "app.js",
   "scripts": {
-    "start:dev": "nodemon server.js"
+    "start:dev": "nodemon --exec babel-node server.js --ignore public/",
+    "start:de": "node server.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "async-rwlock": "^1.1.1",
     "busboy": "^0.3.1",
     "consolidate": "^0.16.0",
     "dotenv": "^8.2.0",
@@ -21,5 +23,10 @@
     "rwlock": "^5.0.0",
     "swig": "^1.4.2",
     "uuid": "^8.3.2"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.13.8",
+    "@babel/node": "^7.13.0",
+    "@babel/preset-env": "^7.13.9"
   }
 }
