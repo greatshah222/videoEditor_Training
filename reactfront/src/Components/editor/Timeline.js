@@ -7,6 +7,7 @@ import {
 } from '../utils/TImeManager';
 import TimelineModel from './TimelineModel';
 import axios from 'axios';
+import AddFilterDialog from './AddFilterDialog';
 
 export default function Timeline(props) {
   const [selectedItems, setselectedItems] = useState([]);
@@ -225,7 +226,36 @@ export default function Timeline(props) {
     }
   };
 
-  const addTrack = () => {};
+  const addTrack = async (type, delTrackValue) => {
+    try {
+      const url = `http://localhost:9000/api/project/${props.project}/track`;
+      const data = {
+        type,
+      };
+
+      const res = await axios.post(url, data);
+      if (res.data.err !== 'undefined') {
+        alert(`${res.data.err}\n\n${res.data.msg}`);
+      }
+      if (delTrackValue !== null) delTrack(delTrackValue);
+      else props.loadData();
+    } catch (error) {
+      props.fetchError(error.message);
+    }
+  };
+  const delTrack = async (trackId) => {
+    try {
+      const url = `http://localhost:9000/api/project/${props.project}/track/${trackId}`;
+
+      const res = await axios.delete(url);
+      if (res.data.err !== 'undefined') {
+        alert(`${res.data.err}\n\n${res.data.msg}`);
+      }
+      props.loadData();
+    } catch (error) {
+      props.fetchError(error.message);
+    }
+  };
 
   useEffect(() => {
     const container = document.getElementById('timeline');
@@ -330,5 +360,43 @@ export default function Timeline(props) {
 
     if (fitTimeline) timeline.fit();
   }, []);
-  return <div></div>;
+  return (
+    <>
+      <button onClick={buttonFilter}>
+        <i className='material-icons' aria-hidden='true'>
+          flare
+        </i>
+        Filters
+      </button>
+      {/*<button><i className="material-icons" aria-hidden="true">photo_filter</i>Přidat přechod</button>*/}
+      <button onClick={buttonSplit}>
+        <i className='material-icons' aria-hidden='true'>
+          flip
+        </i>
+        Split a point{' '}
+      </button>
+      {/*<button><i className="material-icons" aria-hidden="true">menu</i>Vlastnosti</button>*/}
+      <button onClick={buttonDel}>
+        <i className='material-icons' aria-hidden='true'>
+          remove
+        </i>
+        Remove{' '}
+      </button>
+      <div id='time'>
+        {TimelineModel.dateToString(props.time)} / {duration}
+      </div>
+      <div id='timeline' />
+      {showAddFilterDialog && (
+        <AddFilterDialog
+          item={selectedItems[0]}
+          getItem={getItemFromTrackIndex}
+          project={props.project}
+          onClose={closeAddFilterDialog}
+          onAdd={(filter) => props.onAddFilter(filter)}
+          onDel={(filter) => props.onDelFilter(filter)}
+          fetchError={props.fetchError}
+        />
+      )}
+    </>
+  );
 }
